@@ -572,7 +572,7 @@ const layers = [
         'JWT access token (15m) + refresh token (7d) issued',
         'Redis stores sessions for fast validation & revocation'
       ],
-      techChoices: 'NestJS Guards for route protection, Passport.js SIWE strategy, Redis for token blacklisting on logout.'
+      techChoices: 'Quarkus Security with JAX-RS filters for route protection, web3j for SIWE signature verification, Redis via Quarkus-Redis for token blacklisting on logout.'
     }
   },
   {
@@ -588,7 +588,7 @@ const layers = [
         'Economy: Asset ownership, trading, transactions',
         'Analytics: Read-only projections for dashboards'
       ],
-      techChoices: 'NestJS modules as context boundaries, PostgreSQL with schema-per-context, OpenAPI contracts between contexts.'
+      techChoices: 'Quarkus modules (CDI beans + JAX-RS) as context boundaries, PostgreSQL with schema-per-context via Hibernate ORM/Panache, OpenAPI contracts between contexts.'
     }
   },
   {
@@ -605,7 +605,7 @@ const layers = [
         'WebSocket pushes state updates to both players in real-time',
         'Client-side prediction for instant feedback, server reconciliation for truth'
       ],
-      techChoices: 'XState for FSM definitions, WebSocket gateway in NestJS, event log in PostgreSQL for replay/audit/anti-cheat.'
+      techChoices: 'Spring State Machine or custom FSM in Kotlin for state definitions, Quarkus WebSocket gateway via Vert.x, event log in PostgreSQL for replay/audit/anti-cheat.'
     }
   }
 ];
@@ -618,7 +618,7 @@ const impactData = [
 ];
 
 const phases = [
-  { phase: 'Phase 1', time: 'Months 1-2', title: 'Foundation', desc: 'NestJS backend, PostgreSQL, SIWE Auth, API contracts', color: COLORS.accent },
+  { phase: 'Phase 1', time: 'Months 1-2', title: 'Foundation', desc: 'Quarkus backend (GraalVM native), PostgreSQL, SIWE Auth, API contracts', color: COLORS.accent },
   { phase: 'Phase 2', time: 'Months 3-4', title: 'Alpha',      desc: '3D engine (R3F), PvE battles, FROZ testnet deploy', color: COLORS.accent2 },
   { phase: 'Phase 3', time: 'Months 5-8', title: 'Beta',       desc: 'NFT marketplace, PvP multiplayer, DeFi staking',    color: COLORS.amber },
   { phase: 'Phase 4', time: 'Months 9+',  title: 'Launch',     desc: 'DAO governance, cross-chain, seasonal events',      color: COLORS.white }
