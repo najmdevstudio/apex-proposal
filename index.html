@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arn-Apex | Architectural Improvement Proposal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ── Reset & Variables ── */
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg:        #0B0F14;
+    --bg2:       #111820;
+    --card:      #151E2B;
+    --card-hover:#1A2536;
+    --accent:    #00D4AA;
+    --accent2:   #00B4D8;
+    --amber:     #FFB84D;
+    --red:       #FF6B6B;
+    --white:     #F0F4F8;
+    --gray:      #7A8EA0;
+    --light:     #C0CEDB;
+    --font-display: 'Outfit', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: var(--font-display);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Subtle grid bg texture ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,170,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,170,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Glow orbs ── */
+  .glow-orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.12;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .glow-orb.teal  { width: 500px; height: 500px; background: var(--accent);  top: -150px; left: -100px; }
+  .glow-orb.blue  { width: 400px; height: 400px; background: var(--accent2); bottom: -100px; right: -50px; }
+  .glow-orb.amber { width: 300px; height: 300px; background: var(--amber);   top: 50%; left: 60%; }
+
+  /* ── Layout ── */
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1020px;
+    margin: 0 auto;
+    padding: 48px 28px 60px;
+  }
+
+  /* ── Header ── */
+  .brand {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 4px;
+    margin-bottom: 10px;
+    opacity: 0;
+    animation: fadeSlideUp 0.6s 0.1s forwards;
+  }
+  h1 {
+    font-size: clamp(24px, 4vw, 34px);
+    font-weight: 800;
+    color: var(--white);
+    line-height: 1.2;
+    opacity: 0;
+    animation: fadeSlideUp 0.6s 0.2s forwards;
+  }
+  .subtitle {
+    font-size: 15px;
+    color: var(--gray);
+    font-weight: 300;
+    margin-top: 6px;
+    opacity: 0;
+    animation: fadeSlideUp 0.6s 0.3s forwards;
+  }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    gap: 6px;
+    margin-top: 32px;
+    margin-bottom: 32px;
+    opacity: 0;
+    animation: fadeSlideUp 0.6s 0.4s forwards;
+  }
+  .tab-btn {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 22px;
+    border-radius: 8px;
+    border: 1px solid rgba(122,142,160,0.25);
+    background: transparent;
+    color: var(--gray);
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+  .tab-btn::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%; height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transition: transform 0.3s;
+  }
+  .tab-btn:hover {
+    color: var(--light);
+    border-color: rgba(122,142,160,0.5);
+    background: rgba(255,255,255,0.03);
+  }
+  .tab-btn.active {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: rgba(0,212,170,0.08);
+  }
+  .tab-btn.active::after { transform: scaleX(1); }
+
+  /* ── Tab content wrapper ── */
+  .tab-content {
+    display: none;
+    animation: fadeIn 0.35s ease;
+  }
+  .tab-content.visible { display: block; }
+
+  /* ── Layer Cards Grid ── */
+  .layers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
+  }
+
+  .layer-card {
+    background: var(--card);
+    border: 2px solid transparent;
+    border-radius: 14px;
+    padding: 24px;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .layer-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--card-accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s;
+  }
+  .layer-card:hover {
+    background: var(--card-hover);
+    border-color: rgba(255,255,255,0.06);
+    transform: translateY(-2px);
+  }
+  .layer-card:hover::before { transform: scaleX(1); }
+  .layer-card.active {
+    border-color: var(--card-accent);
+    background: color-mix(in srgb, var(--card-accent) 6%, var(--card));
+  }
+  .layer-card.active::before { transform: scaleX(1); }
+
+  .layer-icon { font-size: 30px; margin-bottom: 10px; }
+  .layer-subtitle {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .layer-title {
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 14px;
+  }
+  .layer-items { display: flex; flex-direction: column; gap: 7px; }
+  .layer-item {
+    font-size: 13px;
+    color: var(--gray);
+    padding-left: 14px;
+    position: relative;
+  }
+  .layer-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 7px;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--card-accent);
+    opacity: 0.5;
+  }
+
+  /* ── Detail Panel ── */
+  .detail-panel {
+    margin-top: 22px;
+    background: var(--card);
+    border-radius: 14px;
+    padding: 30px;
+    border: 1px solid rgba(255,255,255,0.06);
+    animation: slideExpand 0.4s ease;
+  }
+  .detail-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .detail-header-icon { font-size: 26px; }
+  .detail-header-title { font-size: 20px; font-weight: 700; }
+  .detail-header-badge {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid;
+  }
+
+  .detail-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 640px) {
+    .detail-columns { grid-template-columns: 1fr; }
+  }
+  .detail-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+  }
+  .detail-text {
+    font-size: 13.5px;
+    color: var(--light);
+    line-height: 1.7;
+  }
+
+  .flow-box {
+    background: var(--bg2);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 18px;
+  }
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .flow-step:last-child { margin-bottom: 0; }
+  .flow-num {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .flow-text {
+    font-size: 13px;
+    color: var(--light);
+    line-height: 1.55;
+  }
+
+  .tech-note {
+    font-size: 12px;
+    color: var(--gray);
+    line-height: 1.6;
+  }
+  .tech-note strong {
+    color: var(--accent2);
+    font-weight: 600;
+  }
+
+  .hint {
+    text-align: center;
+    padding: 32px 0;
+    color: var(--gray);
+    font-size: 13px;
+    font-weight: 300;
+  }
+  .hint span {
+    display: inline-block;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  /* ── Impact Tab ── */
+  .impact-grid { display: grid; gap: 14px; }
+  .impact-row {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 18px 24px;
+    display: grid;
+    grid-template-columns: 140px 1fr 36px 1fr;
+    align-items: center;
+    gap: 16px;
+    transition: transform 0.2s;
+  }
+  .impact-row:hover { transform: translateX(4px); }
+  @media (max-width: 640px) {
+    .impact-row { grid-template-columns: 1fr; gap: 10px; }
+  }
+  .impact-metric { font-size: 14px; font-weight: 600; color: var(--light); }
+  .impact-badge {
+    border-radius: 8px;
+    padding: 9px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    font-family: var(--font-mono);
+  }
+  .impact-arrow { text-align: center; color: var(--gray); font-size: 18px; }
+
+  .insight-box {
+    margin-top: 28px;
+    border-radius: 12px;
+    padding: 22px;
+    border: 1px solid;
+    line-height: 1.7;
+  }
+  .insight-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+  }
+  .insight-text {
+    font-size: 14px;
+    color: var(--light);
+  }
+  .insight-text strong { color: var(--white); }
+
+  /* ── Roadmap Tab ── */
+  .roadmap-item {
+    display: flex;
+    gap: 18px;
+    margin-bottom: 18px;
+  }
+  .roadmap-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 84px;
+    flex-shrink: 0;
+  }
+  .roadmap-badge {
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    width: 100%;
+    font-family: var(--font-mono);
+  }
+  .roadmap-line {
+    width: 2px;
+    height: 18px;
+    margin-top: 6px;
+    border-radius: 1px;
+  }
+  .roadmap-card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 18px 22px;
+    flex: 1;
+    border-left: 3px solid;
+    transition: transform 0.2s;
+  }
+  .roadmap-card:hover { transform: translateX(4px); }
+  .roadmap-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .roadmap-title { font-size: 16px; font-weight: 700; color: var(--white); }
+  .roadmap-time {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .roadmap-desc { font-size: 13px; color: var(--gray); line-height: 1.5; }
+
+  .closing-note {
+    margin-top: 16px;
+    background: var(--card-hover);
+    border-radius: 12px;
+    padding: 18px;
+    text-align: center;
+    font-size: 13.5px;
+    color: var(--accent);
+    font-style: italic;
+    font-weight: 300;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    margin-top: 56px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    opacity: 0;
+    animation: fadeSlideUp 0.6s 0.6s forwards;
+  }
+  .footer-text { font-size: 12px; color: var(--gray); font-weight: 300; }
+  .footer-tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    background: rgba(0,212,170,0.08);
+    padding: 5px 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(0,212,170,0.2);
+  }
+
+  /* ── Animations ── */
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes slideExpand {
+    from { opacity: 0; transform: translateY(10px); max-height: 0; }
+    to   { opacity: 1; transform: translateY(0); max-height: 2000px; }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.5; }
+    50%      { opacity: 1; }
+  }
+
+  /* ── Staggered card entrance ── */
+  .layer-card { opacity: 0; animation: fadeSlideUp 0.5s forwards; }
+  .layer-card:nth-child(1) { animation-delay: 0.15s; }
+  .layer-card:nth-child(2) { animation-delay: 0.25s; }
+  .layer-card:nth-child(3) { animation-delay: 0.35s; }
+
+  .impact-row { opacity: 0; animation: fadeSlideUp 0.4s forwards; }
+  .impact-row:nth-child(1) { animation-delay: 0.1s; }
+  .impact-row:nth-child(2) { animation-delay: 0.2s; }
+  .impact-row:nth-child(3) { animation-delay: 0.3s; }
+  .impact-row:nth-child(4) { animation-delay: 0.4s; }
+
+  .roadmap-item { opacity: 0; animation: fadeSlideUp 0.4s forwards; }
+  .roadmap-item:nth-child(1) { animation-delay: 0.1s; }
+  .roadmap-item:nth-child(2) { animation-delay: 0.2s; }
+  .roadmap-item:nth-child(3) { animation-delay: 0.3s; }
+  .roadmap-item:nth-child(4) { animation-delay: 0.4s; }
+</style>
+</head>
+<body>
+
+<!-- Ambient glow orbs -->
+<div class="glow-orb teal"></div>
+<div class="glow-orb blue"></div>
+<div class="glow-orb amber"></div>
+
+<div class="container">
+
+  <!-- Header -->
+  <div class="brand">ARN-APEX</div>
+  <h1>Server-Authoritative Architecture</h1>
+  <p class="subtitle">The single improvement that unlocks the entire product roadmap</p>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="architecture">Architecture</button>
+    <button class="tab-btn" data-tab="impact">Impact</button>
+    <button class="tab-btn" data-tab="roadmap">Roadmap</button>
+  </div>
+
+  <!-- ═══════════════ Architecture Tab ═══════════════ -->
+  <div id="tab-architecture" class="tab-content visible">
+    <div class="layers-grid" id="layers-grid"></div>
+    <div id="detail-panel"></div>
+    <div class="hint" id="hint"><span>Click a layer above to explore the implementation details</span></div>
+  </div>
+
+  <!-- ═══════════════ Impact Tab ═══════════════ -->
+  <div id="tab-impact" class="tab-content">
+    <div class="impact-grid" id="impact-grid"></div>
+    <div class="insight-box" id="insight-box"></div>
+  </div>
+
+  <!-- ═══════════════ Roadmap Tab ═══════════════ -->
+  <div id="tab-roadmap" class="tab-content">
+    <div id="roadmap-list"></div>
+    <div class="closing-note">
+      This architecture doesn't just fix today's problems — it's the platform the next 12 months are built on.
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span class="footer-text">Assessment by Mohammad Najm — Architectural Improvement Proposal</span>
+    <span class="footer-tag">MOHAMMAD NAJM</span>
+  </div>
+
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────
+const COLORS = {
+  accent: '#00D4AA', accent2: '#00B4D8', amber: '#FFB84D',
+  red: '#FF6B6B', bg: '#0B0F14', white: '#F0F4F8', gray: '#7A8EA0', light: '#C0CEDB'
+};
+
+const layers = [
+  {
+    id: 'auth', title: 'Auth Gateway', subtitle: 'Layer 1',
+    color: COLORS.accent, icon: '🔐',
+    items: ['SIWE (EIP-4361)', 'JWT + Refresh Tokens', 'Redis Session Store', 'RBAC Middleware'],
+    detail: {
+      problem: "The current ConnectWalletModal asks users for their wallet password — a phishing pattern that would destroy trust on day one.",
+      solution: "Sign-In with Ethereum (SIWE) lets wallets sign a challenge message. The server verifies the signature to recover the wallet address. No password ever touches the application.",
+      flow: [
+        'Frontend requests a nonce from /auth/challenge',
+        'Wallet signs a structured SIWE message',
+        'Server verifies signature with ethers.js',
+        'JWT access token (15m) + refresh token (7d) issued',
+        'Redis stores sessions for fast validation & revocation'
+      ],
+      techChoices: 'NestJS Guards for route protection, Passport.js SIWE strategy, Redis for token blacklisting on logout.'
+    }
+  },
+  {
+    id: 'ddd', title: 'DDD Boundaries', subtitle: 'Layer 2',
+    color: COLORS.accent2, icon: '🧩',
+    items: ['Identity Context', 'Game Context', 'Economy Context', 'Analytics Context'],
+    detail: {
+      problem: "Two half-finished backends (JS mock + dormant TS/Mongoose) with no clear ownership boundaries. Maintainability: 3/10.",
+      solution: "Domain-Driven Design with four bounded contexts. Each context owns its data model, API surface, and can be extracted into a microservice when load demands it.",
+      flow: [
+        'Identity: Auth, profiles, wallet linking',
+        'Game: Match state, player actions, validation',
+        'Economy: Asset ownership, trading, transactions',
+        'Analytics: Read-only projections for dashboards'
+      ],
+      techChoices: 'NestJS modules as context boundaries, PostgreSQL with schema-per-context, OpenAPI contracts between contexts.'
+    }
+  },
+  {
+    id: 'game', title: 'Game State Engine', subtitle: 'Layer 3',
+    color: COLORS.amber, icon: '⚡',
+    items: ['Server-Authoritative FSM', 'Event Sourcing', 'WebSocket Real-time', 'Client Prediction'],
+    detail: {
+      problem: "The current 'SimpleBattleGame' is a React useState toy. Any player could modify game state from the browser console. No anti-cheat possible.",
+      solution: "A server-authoritative finite state machine validates every action. The client predicts outcomes for responsiveness, then reconciles with the server's truth.",
+      flow: [
+        'Client submits action → Server validates against rules',
+        'State machine: LOBBY → BATTLE → RESOLUTION → REWARDS',
+        'Every action logged as an immutable event (event sourcing)',
+        'WebSocket pushes state updates to both players in real-time',
+        'Client-side prediction for instant feedback, server reconciliation for truth'
+      ],
+      techChoices: 'XState for FSM definitions, WebSocket gateway in NestJS, event log in PostgreSQL for replay/audit/anti-cheat.'
+    }
+  }
+];
+
+const impactData = [
+  { metric: 'Security',       before: '0/10',      after: '8/10',     beforeColor: COLORS.red, afterColor: COLORS.accent },
+  { metric: 'Scalability',    before: '2/10',      after: '6/10',     beforeColor: COLORS.red, afterColor: COLORS.accent },
+  { metric: 'Maintainability',before: '3/10',      after: '7/10',     beforeColor: COLORS.red, afterColor: COLORS.accent },
+  { metric: 'Time to Alpha',  before: 'Undefined', after: '~8 weeks', beforeColor: COLORS.red, afterColor: COLORS.accent2 }
+];
+
+const phases = [
+  { phase: 'Phase 1', time: 'Months 1-2', title: 'Foundation', desc: 'NestJS backend, PostgreSQL, SIWE Auth, API contracts', color: COLORS.accent },
+  { phase: 'Phase 2', time: 'Months 3-4', title: 'Alpha',      desc: '3D engine (R3F), PvE battles, FROZ testnet deploy', color: COLORS.accent2 },
+  { phase: 'Phase 3', time: 'Months 5-8', title: 'Beta',       desc: 'NFT marketplace, PvP multiplayer, DeFi staking',    color: COLORS.amber },
+  { phase: 'Phase 4', time: 'Months 9+',  title: 'Launch',     desc: 'DAO governance, cross-chain, seasonal events',      color: COLORS.white }
+];
+
+// ── State ─────────────────────────────────────────
+let activeLayer = null;
+
+// ── Helpers ───────────────────────────────────────
+function hexAlpha(hex, alpha) {
+  const a = Math.round(alpha * 255).toString(16).padStart(2, '0');
+  return hex + a;
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Render: Layer Cards ──────────────────────────
+function renderLayers() {
+  const grid = document.getElementById('layers-grid');
+  grid.innerHTML = layers.map(layer => `
+    <div class="layer-card ${activeLayer === layer.id ? 'active' : ''}"
+         style="--card-accent: ${layer.color}"
+         data-layer="${layer.id}"
+         onclick="toggleLayer('${layer.id}')">
+      <div class="layer-icon">${layer.icon}</div>
+      <div class="layer-subtitle" style="color: ${layer.color}">${layer.subtitle}</div>
+      <div class="layer-title">${layer.title}</div>
+      <div class="layer-items">
+        ${layer.items.map(item => `<div class="layer-item" style="--card-accent: ${layer.color}">${escapeHtml(item)}</div>`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── Render: Detail Panel ─────────────────────────
+function renderDetail() {
+  const panel = document.getElementById('detail-panel');
+  const hint = document.getElementById('hint');
+
+  if (!activeLayer) {
+    panel.innerHTML = '';
+    hint.style.display = 'block';
+    return;
+  }
+
+  hint.style.display = 'none';
+  const layer = layers.find(l => l.id === activeLayer);
+  const d = layer.detail;
+
+  panel.innerHTML = `
+    <div class="detail-panel">
+      <div class="detail-header">
+        <span class="detail-header-icon">${layer.icon}</span>
+        <span class="detail-header-title">${layer.title}</span>
+        <span class="detail-header-badge" style="color: ${layer.color}; border-color: ${hexAlpha(layer.color, 0.4)}; background: ${hexAlpha(layer.color, 0.08)}">DEEP DIVE</span>
+      </div>
+
+      <div class="detail-columns">
+        <div>
+          <div class="detail-label" style="color: ${COLORS.red}">PROBLEM</div>
+          <div class="detail-text">${escapeHtml(d.problem)}</div>
+        </div>
+        <div>
+          <div class="detail-label" style="color: ${COLORS.accent}">SOLUTION</div>
+          <div class="detail-text">${escapeHtml(d.solution)}</div>
+        </div>
+      </div>
+
+      <div class="flow-box">
+        <div class="detail-label" style="color: ${layer.color}; margin-bottom: 14px;">IMPLEMENTATION FLOW</div>
+        ${d.flow.map((step, i) => `
+          <div class="flow-step">
+            <div class="flow-num" style="background: ${layer.color}; color: ${COLORS.bg}">${i + 1}</div>
+            <div class="flow-text">${escapeHtml(step)}</div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="tech-note"><strong>Tech: </strong>${escapeHtml(d.techChoices)}</div>
+    </div>
+  `;
+}
+
+// ── Render: Impact Tab ──────────────────────────
+function renderImpact() {
+  const grid = document.getElementById('impact-grid');
+  grid.innerHTML = impactData.map(item => `
+    <div class="impact-row">
+      <div class="impact-metric">${item.metric}</div>
+      <div class="impact-badge" style="background: ${hexAlpha(item.beforeColor, 0.1)}; color: ${item.beforeColor}; border: 1px solid ${hexAlpha(item.beforeColor, 0.25)}">${item.before}</div>
+      <div class="impact-arrow">→</div>
+      <div class="impact-badge" style="background: ${hexAlpha(item.afterColor, 0.1)}; color: ${item.afterColor}; border: 1px solid ${hexAlpha(item.afterColor, 0.25)}">${item.after}</div>
+    </div>
+  `).join('');
+
+  const box = document.getElementById('insight-box');
+  box.style.background = hexAlpha(COLORS.accent, 0.06);
+  box.style.borderColor = hexAlpha(COLORS.accent, 0.2);
+  box.innerHTML = `
+    <div class="insight-label" style="color: ${COLORS.accent}">KEY INSIGHT</div>
+    <div class="insight-text">
+      This single architectural improvement moves every metric simultaneously because it's a <strong>foundation</strong>, not a feature. Auth enables user identity. Persistence enables data retention. DDD boundaries enable team velocity. The game state engine enables real gameplay. Everything else on the roadmap depends on these three layers existing.
+    </div>
+  `;
+}
+
+// ── Render: Roadmap Tab ─────────────────────────
+function renderRoadmap() {
+  const list = document.getElementById('roadmap-list');
+  list.innerHTML = phases.map((p, i) => `
+    <div class="roadmap-item">
+      <div class="roadmap-left">
+        <div class="roadmap-badge" style="background: ${p.color}; color: ${COLORS.bg}">${p.phase}</div>
+        ${i < phases.length - 1 ? `<div class="roadmap-line" style="background: ${hexAlpha(p.color, 0.3)}"></div>` : ''}
+      </div>
+      <div class="roadmap-card" style="border-left-color: ${p.color}">
+        <div class="roadmap-card-header">
+          <span class="roadmap-title">${p.title}</span>
+          <span class="roadmap-time" style="color: ${p.color}">${p.time}</span>
+        </div>
+        <div class="roadmap-desc">${escapeHtml(p.desc)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── Interactions ─────────────────────────────────
+function toggleLayer(id) {
+  activeLayer = activeLayer === id ? null : id;
+  renderLayers();
+  renderDetail();
+}
+
+function switchTab(tabId) {
+  // Update buttons
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tabId);
+  });
+  // Update panels
+  document.querySelectorAll('.tab-content').forEach(panel => {
+    panel.classList.toggle('visible', panel.id === 'tab-' + tabId);
+  });
+  // Reset layer selection when switching away
+  if (tabId !== 'architecture') {
+    activeLayer = null;
+    renderLayers();
+    renderDetail();
+  }
+}
+
+// Tab click listeners
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+// ── Init ──────────────────────────────────────────
+renderLayers();
+renderDetail();
+renderImpact();
+renderRoadmap();
+</script>
+</body>
+</html>
